@@ -1,0 +1,19 @@
+{
+    "name": "rich.jones/rlclient",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "RichJones\\Rlclient\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Rich Jones",
+            "email": "richard.jones@acquia.com"
+        }
+    ],
+    "require": {
+        "guzzlehttp/guzzle": "^7.9",
+        "vlucas/phpdotenv": "^5.6"
+    }
+}
