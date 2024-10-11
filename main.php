@@ -26,23 +26,64 @@ class RLClient
         foreach ($this->getAllZones() as $zone_id) {
             $ruleset_id = $this->getRlRulesetId($zone_id);
             $this->createRateLimits($zone_id, $ruleset_id);
-            //$this->deleteRuleset($rl_ruleset_id, $zone_id);
+            //$this->deleteRuleset($ruleset_id, $zone_id);
         }
     }
 
     function getAllZones() : array
     {
         // rich-jones.net
-        return ['5d003482c28b729c3aceb518f25befcb'];
+        //return ['5d003482c28b729c3aceb518f25befcb'];
+
+        // michaelpage.co.nz
+        return ['be18ac244887f509cc3173d1628d8b56'];
 
         // @TODO.
     }
 
+    /**
+     * Create new Rate Limit rules, given Zone + Ruleset.
+     *
+     * @param $zone_id
+     * @param $ruleset_id
+     * @return void
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     function createRateLimits($zone_id, $ruleset_id)
     {
+        $json = [
+            "description" => "Test rule",
+            "expression" => "(http.request.uri.path wildcard \"/fake-path2/*\" and http.request.method eq \"POST\")",
+            "action" => "managed_challenge",
+            "ratelimit" => (object) [
+                "characteristics" => [
+                    "ip.src",
+                    "cf.colo.id"
+                ],
+                "period" => 60,
+                "requests_per_period" => 50,
+                "mitigation_timeout" => 0
+            ],
+            "enabled" => false
+        ];
+
+        $res = $this->client->request('POST', "/client/v4/zones/$zone_id/rulesets/$ruleset_id/rules", [
+            'headers' => $this->auth_headers,
+            'json' => $json,
+        ]);
+
+        echo PHP_EOL . "Created ruleset rule, returned status code: " . $res->getStatusCode();
     }
 
-    function getRlRulesetId(String $zone_id) : int
+    /**
+     * Grabs the RuleSet ID, which serves as a container for Rate Limiting rules.
+     * If it does not exist, create it.
+     *
+     * @param String $zone_id
+     * @return String
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
+    function getRlRulesetId(String $zone_id) : String
     {
         $res = $this->client->request('GET', "/client/v4/zones/$zone_id/rulesets", [
             'headers' => $this->auth_headers,
