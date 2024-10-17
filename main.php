@@ -51,28 +51,14 @@ class RLClient
      */
     function createRateLimits($zone_id, $ruleset_id)
     {
-        $json = [
-            "description" => "Test rule",
-            "expression" => "(http.request.uri.path wildcard \"/fake-path2/*\" and http.request.method eq \"POST\")",
-            "action" => "managed_challenge",
-            "ratelimit" => (object) [
-                "characteristics" => [
-                    "ip.src",
-                    "cf.colo.id"
-                ],
-                "period" => 60,
-                "requests_per_period" => 50,
-                "mitigation_timeout" => 0
-            ],
-            "enabled" => false
-        ];
+        foreach ($this->getRuleDefinitions() as $rule_definition) {
 
-        $res = $this->client->request('POST', "/client/v4/zones/$zone_id/rulesets/$ruleset_id/rules", [
-            'headers' => $this->auth_headers,
-            'json' => $json,
-        ]);
-
-        echo PHP_EOL . "Created ruleset rule, returned status code: " . $res->getStatusCode();
+            $res = $this->client->request('POST', "/client/v4/zones/$zone_id/rulesets/$ruleset_id/rules", [
+                'headers' => $this->auth_headers,
+                'json' => $rule_definition,
+            ]);
+            echo PHP_EOL . "Created rule: {$rule_definition['description']}, response code: {$res->getStatusCode()}";
+        }
     }
 
     /**
@@ -90,7 +76,7 @@ class RLClient
         ]);
 
         $existing_rulsets = json_decode($res->getBody()->getContents())->result;
-        print_r($existing_rulsets);
+        //print_r($existing_rulsets);
 
         $rl_ruleset_id = '';
         foreach ($existing_rulsets as $existing_rulset) {
@@ -137,5 +123,46 @@ class RLClient
             'headers' => $this->auth_headers,
         ]);
         echo $res->getStatusCode();
+    }
+
+    /**
+     * Rate Limit rule definitions.
+     *
+     * @return array[]
+     */
+    function getRuleDefinitions()
+    {
+        return [
+            [
+                "description" => "Test rule",
+                "expression" => "(http.request.uri.path wildcard \"/fake-path/*\" and http.request.method eq \"POST\")",
+                "action" => "managed_challenge",
+                "ratelimit" => (object) [
+                    "characteristics" => [
+                        "ip.src",
+                        "cf.colo.id"
+                    ],
+                    "period" => 60,
+                    "requests_per_period" => 50,
+                    "mitigation_timeout" => 0
+                ],
+                "enabled" => false
+            ],
+            [
+                "description" => "Test rule2",
+                "expression" => "(http.request.uri.path wildcard \"/fake-path2/*\" and http.request.method eq \"GET\")",
+                "action" => "managed_challenge",
+                "ratelimit" => (object) [
+                    "characteristics" => [
+                        "ip.src",
+                        "cf.colo.id"
+                    ],
+                    "period" => 600,
+                    "requests_per_period" => 50,
+                    "mitigation_timeout" => 0
+                ],
+                "enabled" => false
+            ],
+        ];
     }
 }
