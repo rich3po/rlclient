@@ -6,6 +6,8 @@ require_once 'vendor/autoload.php';
 
 class RLClient
 {
+    public const CF_ORG_NAME = 'Capgemini PageGroup';
+
     public $client;
     public $auth_headers;
 
@@ -30,15 +32,56 @@ class RLClient
         }
     }
 
+    /**
+     * Return array of all Zone IDs on the account.
+     *
+     * @return string[]
+     * @throws \GuzzleHttp\Exception\GuzzleException
+     */
     function getAllZones() : array
     {
-        // rich-jones.net
-        //return ['5d003482c28b729c3aceb518f25befcb'];
+        // Fetch all zones on the account.
+        $res = $this->client->request('GET', "/client/v4/zones", [
+            'headers' => $this->auth_headers,
+            'query' =>  [
+                'account.name' => self::CF_ORG_NAME,
+            ]
+        ]);
 
-        // michaelpage.co.nz
+        $results_decoded = json_decode($res->getBody()->getContents());
+        $results = $results_decoded->result;
+        $result_info = $results_decoded->result_info;
+        //print_r($result_info);
+        //print_r($results);
+
+        $zone_ids = [];
+
+        foreach ($results as $result) {
+            $zone_ids[] = $result->id;
+        }
+
+        // API results are paginated...
+        for ($i = 2; $i <= $result_info->total_pages; $i++) {
+
+            $res = $this->client->request('GET', "/client/v4/zones", [
+                'headers' => $this->auth_headers,
+                'query' =>  [
+                    'account.name' => self::CF_ORG_NAME,
+                    'page' => $i,
+                ]
+            ]);
+            $results = json_decode($res->getBody()->getContents())->result;
+
+            foreach ($results as $result) {
+                $zone_ids[] = $result->id;
+            }
+        }
+
+        //print_r($zone_ids);
+        //return $zone_ids;
+
+        // For dev purposes: return michaelpage.co.nz
         return ['be18ac244887f509cc3173d1628d8b56'];
-
-        // @TODO.
     }
 
     /**
